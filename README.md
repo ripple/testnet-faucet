@@ -1,14 +1,3 @@
-# XRP Ledger Testnet Faucet
+# [XRP Ledger Testnet Faucet](https://github.com/xpring-eng/testnet-faucet)
 
-Funds new testnet accounts
-
-## Usage
-
-````
-npm install
-RIPPLED_URI="wss://s.altnet.rippletest.net:51233" FUNDING_ADDRESS=rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe FUNDING_SECRET=<secret> XRP_AMOUNT=10000 npm start
-````
-
-```
-curl -X POST localhost:3000/accounts
-```
+This repository has been moved to: [https://github.com/xpring-eng/testnet-faucet](https://github.com/xpring-eng/testnet-faucet)
