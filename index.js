@@ -1,54 +1,52 @@
 const express = require('express')
-const cors = require('cors');
+const cors = require('cors')
+const { Client, Wallet } = require('xrpl')
+
 const app = express()
 const port = 3000
-const RippleAPI = require('ripple-lib').RippleAPI
 
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
 const amount = process.env['XRP_AMOUNT']
 
-app.use(cors());
+app.use(cors())
 
-app.post('/accounts', (req, res) => {
-  const api = new RippleAPI({
-    server: rippledUri
-  });
-
-  api.connect().then(() => {
+app.post('/accounts', async (req, res) => {
+  const client = new Client(rippledUri)
+  try {
+    await client.connect()
     console.log('Connected...')
 
-    const account = api.generateAddress()
-    console.log('Generated new account:', account.address)
+    const wallet = Wallet.generate()
+    console.log('Generated new account:', wallet.address)
 
-    return api.preparePayment(address, {
-      source: {
-        address: address,
-        maxAmount: {
-          value: amount,
-          currency: 'XRP'
-        }
-      },
-      destination: {
-        address: account.address,
-        amount: {
-          value: amount,
-          currency: 'XRP'
-        }
-      }
-    }, {maxLedgerVersionOffset: 5}).then(prepared => {
-      const {signedTransaction} = api.sign(prepared.txJSON, secret);
-      console.log('Payment transaction signed...');
-      api.submit(signedTransaction).then(() => {
-        console.log(`Funded ${account.address} with ${amount} XRP`)
-        res.send({
-          account: account,
-          balance: Number(amount)
-        })
-      })
+    const fundingWallet = Wallet.fromSeed(secret)
+
+    const tx = await client.autofill({
+      TransactionType: 'Payment',
+      Account: address,
+      Destination: wallet.address,
+      Amount: String(Number(amount) * 1_000_000),
     })
-  }).catch(err => { console.log(err) })
+
+    const { tx_blob } = fundingWallet.sign(tx)
+    await client.submit(tx_blob)
+
+    console.log(`Funded ${wallet.address} with ${amount} XRP`)
+    res.send({
+      account: {
+        address: wallet.address,
+        secret: wallet.seed,
+      },
+      balance: Number(amount),
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).send({ error: err.message })
+  } finally {
+    await client.disconnect()
+  }
 })
 
 app.listen(port, () => console.log(`Altnet faucet listening on port ${port}!`))
