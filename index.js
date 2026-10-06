@@ -36,9 +36,17 @@ app.post('/accounts', async (req, res) => {
     console.log(`Funded ${wallet.address} with ${amount} XRP`)
     res.send({
       account: {
+        // xrpl.js's fundWallet() reads account.classicAddress, not
+        // account.address -- https://github.com/XRPLF/xrpl.js, Wallet/fundWallet.ts.
+        // Keep `address` too for any caller still reading the old shape.
+        classicAddress: wallet.classicAddress,
+        xAddress: wallet.getXAddress(),
         address: wallet.address,
         secret: wallet.seed,
       },
+      // `amount` matches the standard faucet response shape (defaultFaucets.ts's
+      // FaucetWallet type); `balance` is kept alongside for existing callers.
+      amount: Number(amount),
       balance: Number(amount),
     })
   } catch (err) {
