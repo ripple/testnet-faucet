@@ -58,11 +58,18 @@ app.post('/accounts', async (req, res) => {
     if (wallet) {
       account.secret = wallet.seed
     }
-    res.send({
+    // Same shape as the public devnet/testnet faucets: top-level seed and
+    // transactionHash (account.secret is kept for existing callers).
+    const body = {
       account,
       amount: Number(amount),
       balance: Number(amount),
-    })
+      transactionHash: submitted.result.tx_json && submitted.result.tx_json.hash,
+    }
+    if (wallet) {
+      body.seed = wallet.seed
+    }
+    res.send(body)
   } catch (err) {
     console.error(err)
     res.status(500).send({ error: err.message })
